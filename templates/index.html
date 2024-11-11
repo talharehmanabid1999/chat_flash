@@ -1,11 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Flash</title>
 </head>
+
 <body>
-    TESTING
+    <!-- Landing Page -->
+    <div id="landing">
+        <button onclick="showSignUp()">Sign Up</button>
+        <button onclick="showLogin()">Login</button>
+    </div>
+
+    <!-- Sign Up Form -->
+    <div id="signup" style="display: none;">
+        <h2>Sign Up</h2>
+        <input type="text" id="signupUsername" placeholder="Username" required>
+        <input type="password" id="signupPassword" placeholder="Password" required>
+        <button onclick="signUp()">Submit</button>
+        <p id="signupMessage"></p>
+        <button onclick="showLanding()">Back</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login" style="display: none;">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button onclick="login()">Submit</button>
+        <p id="loginMessage"></p>
+        <button onclick="showLanding()">Back</button>
+    </div>
+
+    <!-- Chat Room -->
+    <div id="chatRoom" style="display: none;">
+        <h2>Chat Room</h2>
+        <label for="userSelect">Select Recipient:</label>
+        <select id="userSelect"></select>
+        <div id="messages"
+            style="border:1px solid #000; height:200px; overflow-y:scroll; margin-top:10px; padding:5px;"></div>
+        <input type="text" id="chatMessage" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="logout()">Logout</button>
+    </div>
 </body>
+
 </html>
