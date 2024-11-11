@@ -27,3 +27,22 @@ def get_db():
         yield db
     finally:
         db.close()
+        
+# Function to create a new test database session
+def get_test_db():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"  # In-memory database
+    test_engine = create_engine(
+        TEST_SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+    TestingSessionLocal = sessionmaker(
+        autocommit=False, autoflush=False, bind=test_engine
+    )
+    Base.metadata.create_all(bind=test_engine)
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
