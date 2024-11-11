@@ -1,12 +1,13 @@
 
 from model.database import get_db, Base, engine
 
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Query
 
 
 # Initialize database
 Base.metadata.create_all(bind=engine)
 
-
+app = FastAPI()
 
 # Run the FastAPI application
 if __name__ == "__main__":
