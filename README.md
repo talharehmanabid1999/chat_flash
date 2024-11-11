@@ -103,13 +103,12 @@ pytest
 
 The tests are located in the tests/ directory and include:
 
-*   **tests/test\_auth.py**: Tests for user authentication and authorization.
+*   **tests/test_auth.py**: Tests for user authentication and authorization.
     
-*   **tests/test\_crud.py**: Tests for basic CRUD operations on the database.
+*   **tests/test_crud.py**: Tests for basic CRUD operations on the database.
     
-*   **tests/test\_main.py**: Tests for the main app routes.
-    
-*   **tests/test\_websocket.py**: Tests WebSocket functionality for real-time messaging.
+*   **tests/test_async.py**: Tests for the main app routes.
+
     
 
 
