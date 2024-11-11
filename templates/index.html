@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Flash</title>
+</head>
+<body>
+
+    <!-- Landing Page -->
+    <div id="landing">
+        <button onclick="showSignUp()">Sign Up</button>
+        <button onclick="showLogin()">Login</button>
+    </div>
+
+    <!-- Sign Up Form -->
+    <div id="signup" style="display: none;">
+        <h2>Sign Up</h2>
+        <input type="text" id="signupUsername" placeholder="Username" required>
+        <input type="password" id="signupPassword" placeholder="Password" required>
+        <button onclick="signUp()">Submit</button>
+        <p id="signupMessage"></p>
+        <button onclick="showLanding()">Back</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login" style="display: none;">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username" required>
+        <input type="password" id="loginPassword" placeholder="Password" required>
+        <button onclick="login()">Submit</button>
+        <p id="loginMessage"></p>
+        <button onclick="showLanding()">Back</button>
+    </div>
+
+    <!-- Chat Room -->
+    <div id="chatRoom" style="display: none;">
+        <h2>Chat Room</h2>
+        <label for="userSelect">Select Recipient:</label>
+        <select id="userSelect"></select>
+        <div id="messages" style="border:1px solid #000; height:200px; overflow-y:scroll; margin-top:10px; padding:5px;"></div>
+        <input type="text" id="chatMessage" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+        let token = null;
+        let socket = null;
+        let currentUser = "";  // Store the logged-in user's username
+
+        // Navigation functions
+        function showSignUp() {
+            document.getElementById("landing").style.display = "none";
+            document.getElementById("signup").style.display = "block";
+        }
+
+        function showLogin() {
+            document.getElementById("landing").style.display = "none";
+            document.getElementById("login").style.display = "block";
+        }
+
+        function showLanding() {
+            document.getElementById("signup").style.display = "none";
+            document.getElementById("login").style.display = "none";
+            document.getElementById("chatRoom").style.display = "none";
+            document.getElementById("landing").style.display = "block";
+        }
+
+        function showChatRoom() {
+            document.getElementById("signup").style.display = "none";
+            document.getElementById("login").style.display = "none";
+            document.getElementById("landing").style.display = "none";
+            document.getElementById("chatRoom").style.display = "block";
+        }
+
+        // Sign up function
+        async function signUp() {
+            const username = document.getElementById("signupUsername").value;
+            const password = document.getElementById("signupPassword").value;
+
+            const response = await fetch("http://127.0.0.1:8000/signup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const result = await response.json();
+            if (response.status === 200) {
+                document.getElementById("signupMessage").innerText = "New user created!";
+            } else {
+                document.getElementById("signupMessage").innerText = result.detail || "User already exists.";
+            }
+        }
+
+        // Login function
+        async function login() {
+            const username = document.getElementById("loginUsername").value;
+            const password = document.getElementById("loginPassword").value;
+
+            const response = await fetch("http://127.0.0.1:8000/token", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams({ username, password })
+            });
+
+            const result = await response.json();
+            if (response.status === 200) {
+                token = result.access_token;
+                currentUser = username;  // Save the current user's username
+                document.getElementById("loginMessage").innerText = "";
+                connectToWebSocket();
+                showChatRoom();
+                fetchUsers();  // Fetch all users for the dropdown
+            } else {
+                document.getElementById("loginMessage").innerText = result.detail || "Wrong credentials.";
+            }
+        }
+
+        // Fetch all users for the dropdown menu, excluding the current user
+        async function fetchUsers() {
+            const response = await fetch("http://127.0.0.1:8000/users", {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            const users = await response.json();
+            const userSelect = document.getElementById("userSelect");
+            userSelect.innerHTML = "";  // Clear previous options
+            users.forEach(user => {
+                if (user.username !== currentUser) {  // Exclude the current user from the dropdown
+                    const option = document.createElement("option");
+                    option.value = user.username;
+                    option.text = user.username;
+                    userSelect.appendChild(option);
+                }
+            });
+        }
+
+// Fetch message history with the selected recipient
+async function getMessageHistory(recipient) {
+    const response = await fetch(`http://127.0.0.1:8000/messages/${recipient}`, {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+    const messages = await response.json();
+    const messagesDiv = document.getElementById("messages");
+    messagesDiv.innerHTML = "";  // Clear previous messages
+
+    // Display each message
+    messages.forEach(message => {
+        const senderName = message.sender === currentUser ? `You to ${message.recipient}` : message.sender;
+        messagesDiv.innerHTML += `<p>${senderName}: ${message.content}</p>`;
+    });
+}
+
+
+        // Connect to WebSocket for chat
+        function connectToWebSocket() {
+            socket = new WebSocket(`ws://127.0.0.1:8000/ws/chat?token=${token}`);
+            
+            socket.onopen = () => console.log("Connected to WebSocket");
+
+            socket.onmessage = (event) => {
+                const messagesDiv = document.getElementById("messages");
+                const data = JSON.parse(event.data);
+                const sender = data.sender;
+                const message = data.message;
+                const recipient = data.recipient;
+
+                if (sender === currentUser) {
+                    messagesDiv.innerHTML += `<p>You to ${recipient}: ${message}</p>`;
+                } else if (recipient === currentUser || recipient === null) {
+                    messagesDiv.innerHTML += `<p>${sender}: ${message}</p>`;
+                }
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            socket.onclose = () => console.log("Disconnected from WebSocket");
+
+            socket.onerror = (error) => console.error("WebSocket error:", error);
+        }
+
+        // Send message function
+        function sendMessage() {
+            const message = document.getElementById("chatMessage").value;
+            const recipient = document.getElementById("userSelect").value;  // Get the selected recipient
+            if (message && socket) {
+                socket.send(JSON.stringify({ recipient, message }));
+                document.getElementById("chatMessage").value = "";
+            }
+        }
+
+        // Event listener for user selection to fetch message history
+        document.getElementById("userSelect").addEventListener("change", function() {
+            const recipient = this.value;
+            getMessageHistory(recipient);  // Load message history with selected user
+        });
+
+        // Logout function
+        function logout() {
+            if (socket) {
+                socket.close();
+            }
+            token = null;
+            showLanding();
+        }
+    </script>
+</body>
+</html>
